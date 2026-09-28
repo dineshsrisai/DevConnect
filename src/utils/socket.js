@@ -17,39 +17,42 @@ const initializeSocket = (server) => {
   });
 
   io.on("connection", (socket) => {
-    //handle events
     socket.on("joinChat", ({ firstName, userId, targetUserId }) => {
-      //create a room
-      //room consists of participants
       const roomId = getSecretRoomId(userId, targetUserId);
       socket.join(roomId);
     });
 
     socket.on(
       "sendMessage",
-      async ({ firstName, userId, targetUserId, text }) => {
+      // FIX 1: Expect 'senderId' here to match what the React frontend sends
+      async ({ firstName, senderId, targetUserId, text }) => {
         try {
-          const roomId = getSecretRoomId(userId, targetUserId);
+          const roomId = getSecretRoomId(senderId, targetUserId);
 
           let chat = await Chat.findOne({
-            participants: { $all: [userId, targetUserId] },
+            participants: { $all: [senderId, targetUserId] },
           });
 
           if (!chat) {
             chat = new Chat({
-              participants: [userId, targetUserId],
+              participants: [senderId, targetUserId], // senderId is now valid!
               messages: [],
             });
           }
 
           chat.messages.push({
-            senderId: userId,
+            senderId: senderId, // Properly saves to Mongoose now
             text,
           });
 
           await chat.save();
 
-          io.to(roomId).emit("messageReceived", { firstName, text });
+          // FIX 2: Send 'senderId' back to the frontend so it knows whose chat bubble it is!
+          io.to(roomId).emit("messageReceived", {
+            firstName,
+            senderId,
+            text,
+          });
         } catch (err) {
           console.log(err);
         }
