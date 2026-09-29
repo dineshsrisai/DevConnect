@@ -21,23 +21,24 @@ const connectionRequestSchema = new mongoose.Schema(
       },
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-connectionRequestSchema.index({ fromUserId: 1, toUserId: 1 });
+connectionRequestSchema.index({ fromUserId: 1, toUserId: 1 }, { unique: true });
+
+connectionRequestSchema.index({ toUserId: 1, status: 1 });
 
 connectionRequestSchema.pre("save", function (next) {
   const connectionRequest = this;
   if (connectionRequest.fromUserId.equals(connectionRequest.toUserId)) {
     return next(new Error("Cannot send connection request to yourself!"));
   }
-
-  // next(); // Important: Call next() when validation passes
+  next();
 });
 
 const ConnectionRequest = mongoose.model(
   "ConnectionRequest",
-  connectionRequestSchema
+  connectionRequestSchema,
 );
 
 module.exports = ConnectionRequest;

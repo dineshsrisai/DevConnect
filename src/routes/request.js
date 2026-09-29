@@ -44,7 +44,7 @@ requestRouter.post(
       });
       if (existingConnectionRequest) {
         return res
-          .status(400)
+          .status(409)
           .json({ message: "Connection Request Already Exists!!" });
       }
 
@@ -61,9 +61,14 @@ requestRouter.post(
         data,
       });
     } catch (err) {
+      if (err.code === 11000) {
+        return res
+          .status(409)
+          .json({ message: "Connection Request Already Exists!!" });
+      }
       res.status(400).json({ message: "ERROR: " + err.message });
     }
-  }
+  },
 );
 
 requestRouter.post(
@@ -74,7 +79,9 @@ requestRouter.post(
       const loggedInUser = req.user;
       const { status, requestId } = req.params;
 
-      const anyRequest = await ConnectionRequest.findById(requestId);
+      if (!mongoose.Types.ObjectId.isValid(requestId)) {
+        return res.status(400).json({ message: "Invalid request ID" });
+      }
 
       const allowedStatus = ["accepted", "rejected"];
       if (!allowedStatus.includes(status)) {
@@ -90,18 +97,6 @@ requestRouter.post(
       if (!connectionRequest) {
         return res.status(404).json({
           message: "Connection request not found",
-          debug: {
-            requestId,
-            loggedInUserId: loggedInUser._id.toString(),
-            foundRequest: anyRequest
-              ? {
-                  _id: anyRequest._id.toString(),
-                  fromUserId: anyRequest.fromUserId.toString(),
-                  toUserId: anyRequest.toUserId.toString(),
-                  status: anyRequest.status,
-                }
-              : null,
-          },
         });
       }
 
@@ -112,7 +107,7 @@ requestRouter.post(
     } catch (err) {
       res.status(400).json({ message: "ERROR: " + err.message });
     }
-  }
+  },
 );
 
 module.exports = requestRouter;

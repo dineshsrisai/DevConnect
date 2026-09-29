@@ -4,6 +4,18 @@ const authRouter = express.Router();
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 
+const isProd = process.env.NODE_ENV === "production";
+
+const setAuthCookie = (res, token) => {
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+};
+
 authRouter.post("/signup", async (req, res) => {
   try {
     validateSignUpData(req);
@@ -18,12 +30,9 @@ authRouter.post("/signup", async (req, res) => {
 
     const savedUser = await user.save();
     const token = await savedUser.getJWT();
-    res.cookie("token", token, {
-      expires: new Date(Date.now() + 8 * 3600000),
-    });
+    setAuthCookie(res, token);
 
     res.json({ message: "User Added successfully", data: savedUser });
-
   } catch (err) {
     res.status(400).send("Error saving the user: " + err.message);
   }
@@ -32,6 +41,9 @@ authRouter.post("/signup", async (req, res) => {
 authRouter.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
+    if (typeof emailId !== "string" || typeof password !== "string") {
+      throw new Error("Invalid Credentials");
+    }
 
     const user = await User.findOne({ emailId: emailId });
     if (!user) {
@@ -41,9 +53,7 @@ authRouter.post("/login", async (req, res) => {
 
     if (isPasswordValid) {
       const token = await user.getJWT();
-      res.cookie("token", token, {
-        expires: new Date(Date.now() + 8 * 3600000),
-      });
+      setAuthCookie(res, token);
       res.send(user);
     } else {
       res.status(400).send("Invalid Credentials");
@@ -56,6 +66,9 @@ authRouter.post("/login", async (req, res) => {
 authRouter.post("/logout", async (req, res) => {
   res
     .cookie("token", null, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       expires: new Date(Date.now()),
     })
     .send("Logout Successful!!!");

@@ -29,11 +29,6 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      validate(value) {
-        if (!validator.isStrongPassword(value)) {
-          throw new Error("Enter a Strong Password: " + value);
-        }
-      },
     },
     age: {
       type: Number,
@@ -46,11 +41,6 @@ const userSchema = new mongoose.Schema(
         values: ["male", "female", "other", "Male", "Female", "Other"],
         message: `{VALUE} is not a valid gender type`,
       },
-      // validate(value) {
-      //   if (!["male", "female", "others"].includes(value)) {
-      //     throw new Error("Gender data is not valid");
-      //   }
-      // },
     },
     isPremium: {
       type: Boolean,
@@ -78,13 +68,13 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 userSchema.methods.getJWT = async function () {
   const user = this;
 
-  const token = await jwt.sign({ _id: user._id }, "DEV@Tinder$790", {
+  const token = await jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
 
@@ -97,10 +87,16 @@ userSchema.methods.validatePassword = async function (passwordInputByUser) {
 
   const isPasswordValid = await bcrypt.compare(
     passwordInputByUser,
-    passwordHash
+    passwordHash,
   );
 
   return isPasswordValid;
+};
+
+userSchema.methods.toJSON = function () {
+  const user = this.toObject();
+  delete user.password;
+  return user;
 };
 
 module.exports = mongoose.model("User", userSchema);
