@@ -12,8 +12,6 @@ const getSecretRoomId = (userId, targetUserId) => {
     .digest("hex");
 };
 
-// Minimal cookie-header parser — avoids pulling in an extra dependency
-// just to read one cookie off the socket.io handshake headers.
 const parseCookies = (cookieHeader = "") =>
   Object.fromEntries(
     cookieHeader
@@ -33,11 +31,6 @@ const initializeSocket = (server) => {
     },
   });
 
-  // FIX: previously the server trusted whatever userId/senderId/firstName
-  // the client sent in the socket payload — meaning anyone could join any
-  // chat room, or send a message that shows up as sent by someone else.
-  // Authenticate the handshake the same way REST routes do (the JWT
-  // cookie) and use THAT identity everywhere below.
   io.use(async (socket, next) => {
     try {
       const cookies = parseCookies(socket.handshake.headers.cookie);
@@ -59,10 +52,6 @@ const initializeSocket = (server) => {
   io.on("connection", (socket) => {
     socket.on("joinChat", async ({ targetUserId }) => {
       try {
-        // FIX: only let the two people in an accepted connection join the
-        // room together — previously any authenticated (or, before the
-        // fix above, any unauthenticated) client could join any room just
-        // by knowing/guessing a targetUserId.
         const isConnected = await ConnectionRequest.findOne({
           status: "accepted",
           $or: [
@@ -81,9 +70,6 @@ const initializeSocket = (server) => {
 
     socket.on("sendMessage", async ({ targetUserId, text }) => {
       try {
-        // FIX: senderId/firstName now come from the authenticated socket
-        // (set in io.use() above), never from the client payload — this is
-        // what closes the impersonation hole described above.
         const senderId = socket.userId;
         const firstName = socket.firstName;
         const roomId = getSecretRoomId(senderId, targetUserId);
