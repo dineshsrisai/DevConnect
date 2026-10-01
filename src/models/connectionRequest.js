@@ -25,15 +25,13 @@ const connectionRequestSchema = new mongoose.Schema(
 );
 
 connectionRequestSchema.index({ fromUserId: 1, toUserId: 1 }, { unique: true });
-
 connectionRequestSchema.index({ toUserId: 1, status: 1 });
 
-connectionRequestSchema.pre("save", function (next) {
+connectionRequestSchema.pre("save", function () {
   const connectionRequest = this;
   if (connectionRequest.fromUserId.equals(connectionRequest.toUserId)) {
-    return next(new Error("Cannot send connection request to yourself!"));
+    throw new Error("Cannot send connection request to yourself!");
   }
-  next();
 });
 
 const ConnectionRequest = mongoose.model(

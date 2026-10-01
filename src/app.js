@@ -1,5 +1,4 @@
-require("dotenv").config();
-
+require("dotenv").config(); 
 const express = require("express");
 const connectDB = require("./config/database");
 const app = express();
@@ -40,7 +39,7 @@ app.get("/health", (req, res) => res.status(200).send("OK"));
 const server = http.createServer(app);
 initializeSocket(server);
 
-const PORT = process.env.PORT || 7777;
+const PORT = process.env.PORT;
 
 connectDB()
   .then(() => {

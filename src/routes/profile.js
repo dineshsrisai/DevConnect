@@ -41,8 +41,9 @@ profileRouter.patch("/profile/password/update", userAuth, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const loggedInUser = req.user;
 
-    const isCurrentPasswordValid =
-      await loggedInUser.validatePassword(currentPassword);
+    const isCurrentPasswordValid = await loggedInUser.validatePassword(
+      currentPassword
+    );
     if (!isCurrentPasswordValid) {
       throw new Error("Current password is incorrect");
     }

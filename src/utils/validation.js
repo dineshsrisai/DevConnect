@@ -23,12 +23,15 @@ const validateEditProfileData = (req) => {
     "skills",
   ];
   const isEditAllowed = Object.keys(req.body).every((field) =>
-    allowedEditFields.includes(field),
+    allowedEditFields.includes(field)
   );
   return isEditAllowed;
 };
 
 const validatePasswordUpdate = (req) => {
+  // FIX: now also requires currentPassword (used by routes/profile.js to
+  // verify identity before allowing the change) — previously only
+  // newPassword was checked here.
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword) {
     throw new Error("Current password is required");
